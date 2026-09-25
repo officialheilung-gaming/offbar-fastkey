@@ -1,0 +1,16 @@
+{
+  "name": "offbar-fasttext-plugin",
+  "version": "1.0.0",
+  "description": "OffBar Fast Text — SendInput-speed macro injection for WoW",
+  "type": "module",
+  "main": "app.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "keysender": "^2.4.0"
+  },
+  "allowScripts": {
+    "keysender@2.4.0": true
+  }
+}

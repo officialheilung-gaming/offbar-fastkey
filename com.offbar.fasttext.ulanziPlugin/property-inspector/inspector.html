@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OffBar FastKey</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: #e0e0e0;
+      background: #1e1e1e;
+      padding: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #9ca3af;
+    }
+
+    textarea, select, input[type="number"] {
+      background: #2a2a2a;
+      border: 1px solid #3a3a3a;
+      border-radius: 4px;
+      color: #e0e0e0;
+      padding: 6px 8px;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    textarea:focus, select:focus, input[type="number"]:focus {
+      border-color: #5b8def;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 64px;
+      font-family: "Consolas", "Courier New", monospace;
+    }
+
+    .check-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .check-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #5b8def;
+      cursor: pointer;
+    }
+    .check-row label {
+      font-size: 13px;
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: #e0e0e0;
+      cursor: pointer;
+    }
+
+    .timing-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .timing-grid .field { margin-bottom: 0; }
+
+    .hint {
+      font-size: 10px;
+      color: #6b7280;
+      margin-top: 2px;
+      line-height: 1.4;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid #2d2d2d;
+      margin: 12px 0;
+    }
+
+    button#save {
+      width: 100%;
+      padding: 8px;
+      background: #5b8def;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button#save:hover  { background: #4a7de4; }
+    button#save:active { background: #3a6dd4; }
+
+    .saved-notice {
+      text-align: center;
+      font-size: 11px;
+      color: #6ee7b7;
+      margin-top: 6px;
+      min-height: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Wrap everything in a form so Utils.getFormValue() can read it -->
+  <form id="settingsForm">
+
+    <div class="field">
+      <label for="text">Macro Text</label>
+      <textarea id="text" name="text" rows="3" placeholder="Type your text or command here…"></textarea>
+      <span class="hint">Injected keystroke-by-keystroke when the key is pressed.</span>
+    </div>
+
+    <hr />
+
+    <div class="field">
+      <label for="leadingKey">Leading Key</label>
+      <select id="leadingKey" name="leadingKey">
+        <option value="none">None</option>
+        <option value="enter">Enter (opens a text field)</option>
+      </select>
+      <span class="hint">
+        <strong>Enter</strong> opens a text field or chat box before injecting. Prefix your text with <code>/</code> for slash commands.
+      </span>
+    </div>
+
+    <div class="check-row">
+      <input type="checkbox" id="trailingEnter" name="trailingEnter" />
+      <label for="trailingEnter">Send Enter after text (submits the input)</label>
+    </div>
+
+    <hr />
+
+    <div class="timing-grid">
+
+      <div class="field">
+        <label for="settleDelay">Settle&nbsp;(ms)</label>
+        <input type="number" id="settleDelay" name="settleDelay" min="0" max="500" step="1" value="25" />
+        <span class="hint">Wait after leading key before text burst.</span>
+      </div>
+
+      <div class="field">
+        <label for="keystrokeInterval">Key&nbsp;Interval&nbsp;(ms)</label>
+        <input type="number" id="keystrokeInterval" name="keystrokeInterval" min="0" max="200" step="1" value="0" />
+        <span class="hint">0 = burst. Raise if the target app misses chars.</span>
+      </div>
+
+      <div class="field">
+        <label for="postInjectDelay">Post-Text&nbsp;(ms)</label>
+        <input type="number" id="postInjectDelay" name="postInjectDelay" min="0" max="500" step="1" value="0" />
+        <span class="hint">Wait between text end and trailing Enter.</span>
+      </div>
+
+    </div>
+
+  </form>
+
+  <hr />
+
+  <button id="save">Save Settings</button>
+  <p class="saved-notice" id="savedNotice"></p>
+
+  <!-- Ulanzi SDK — libs folder lives next to inspector.html -->
+  <script src="libs/js/constants.js"></script>
+  <script src="libs/js/eventEmitter.js"></script>
+  <script src="libs/js/timers.js"></script>
+  <script src="libs/js/utils.js"></script>
+  <script src="libs/js/ulanziApi.js"></script>
+
+  <script>
+    'use strict';
+
+    const form = document.getElementById('settingsForm');
+    let ACTION_SETTING = {};
+
+    function populateForm(param) {
+      if (!param) return;
+      ACTION_SETTING = param;
+      if (param.text              !== undefined) document.getElementById('text').value              = param.text;
+      if (param.leadingKey        !== undefined) document.getElementById('leadingKey').value        = param.leadingKey;
+      if (param.settleDelay       !== undefined) document.getElementById('settleDelay').value       = param.settleDelay;
+      if (param.keystrokeInterval !== undefined) document.getElementById('keystrokeInterval').value = param.keystrokeInterval;
+      if (param.postInjectDelay   !== undefined) document.getElementById('postInjectDelay').value   = param.postInjectDelay;
+      if (param.trailingEnter     !== undefined) {
+        document.getElementById('trailingEnter').checked =
+          (param.trailingEnter === true || param.trailingEnter === 'true');
+      }
+    }
+
+    function readForm() {
+      return {
+        text:              document.getElementById('text').value,
+        leadingKey:        document.getElementById('leadingKey').value,
+        trailingEnter:     document.getElementById('trailingEnter').checked,
+        settleDelay:       parseInt(document.getElementById('settleDelay').value,       10) || 0,
+        keystrokeInterval: parseInt(document.getElementById('keystrokeInterval').value, 10) || 0,
+        postInjectDelay:   parseInt(document.getElementById('postInjectDelay').value,   10) || 0,
+      };
+    }
+
+    function saveSettings() {
+      ACTION_SETTING = readForm();
+      // Send via both paths — Studio routes one or the other depending on version
+      $UD.sendParamFromPlugin(ACTION_SETTING);
+      if (typeof $UD.sendToPlugin === 'function') {
+        $UD.sendToPlugin(ACTION_SETTING);
+      }
+    }
+
+    // Register listeners BEFORE connect so we never miss the initial onAdd
+    $UD.onAdd((message) => {
+      populateForm(message.param || message.settings || message.payload);
+    });
+
+    $UD.onParamFromApp((message) => {
+      populateForm(message.param || message.settings || message.payload);
+    });
+
+    // Also handle paramfromplugin echoed back from backend
+    if (typeof $UD.onParamFromPlugin === 'function') {
+      $UD.onParamFromPlugin((message) => {
+        populateForm(message.param || message.settings || message.payload);
+      });
+    }
+
+    // Connect AFTER listeners are wired
+    $UD.connect('com.ulanzi.ulanzistudio.offbar.fasttext.inject');
+
+    document.getElementById('save').addEventListener('click', () => {
+      saveSettings();
+      const notice = document.getElementById('savedNotice');
+      notice.textContent = '✓ Saved';
+      setTimeout(() => { notice.textContent = ''; }, 1800);
+    });
+  </script>
+
+</body>
+</html>
