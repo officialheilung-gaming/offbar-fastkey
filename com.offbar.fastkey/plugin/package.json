@@ -1,7 +1,7 @@
 {
-  "name": "offbar-fasttext-plugin",
+  "name": "offbar-fastkey-plugin",
   "version": "1.0.0",
-  "description": "OffBar Fast Text — SendInput-speed macro injection for WoW",
+  "description": "OffBar FastKey — SendInput-speed macro injection for WoW",
   "type": "module",
   "main": "app.js",
   "engines": {

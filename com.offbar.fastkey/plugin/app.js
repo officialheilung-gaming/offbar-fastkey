@@ -40,7 +40,11 @@ const instances = new Map();
 // ── SDK wiring ────────────────────────────────────────────────────────────────
 const $UD = new UlanziApi();
 
-$UD.connect('com.ulanzi.ulanzistudio.offbar.fasttext');
+// The PLUGIN uuid, not the action uuid, and not four segments. Both were
+// learned on hardware on 2026-09-30: the SDK files a 4-segment uuid as the
+// host's main service and never routes it a key press, and the one build
+// that ever fired handed connect() its plugin uuid.
+$UD.connect('com.offbar.ulanzideck.obfk.fastkey');
 
 /** Called when a key instance is added/restored with saved param */
 $UD.onAdd((message) => {

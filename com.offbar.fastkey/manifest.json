@@ -1,25 +1,33 @@
 {
   "Author": "OffBar",
-  "Name": "OffBar Fast Text",
-  "Description": "Inject WoW macro text at SendInput speed — no clipboard, no paste hotkey conflicts.",
+  "Name": "OffBar FastKey",
+  "Description": "Inject any text or command at SendInput speed — no clipboard, no paste conflicts.",
   "Icon": "resources/icon.png",
-  "Version": "1.0.0",
-  "UUID": "com.ulanzi.ulanzistudio.offbar.fasttext",
+  "Version": "1.1.0",
+  "UUID": "com.offbar.ulanzideck.obfk.fastkey",
   "Type": "JavaScript",
   "CodePath": "plugin/app.js",
   "Actions": [
     {
-      "Name": "Fast Text",
+      "Name": "FastKey",
       "Icon": "resources/icon.png",
-      "UUID": "com.ulanzi.ulanzistudio.offbar.fasttext.inject",
+      "UUID": "com.offbar.ulanzideck.obfk.fastkey.inject",
       "PropertyInspectorPath": "property-inspector/inspector.html",
       "States": [
-        { "Name": "Default", "Image": "resources/icon.png" }
+        {
+          "Name": "Default",
+          "Image": "resources/icon.png"
+        }
       ],
-      "Controllers": ["Keypad"]
+      "Controllers": [
+        "Keypad"
+      ]
     }
   ],
   "OS": [
-    { "Platform": "windows", "MinimumVersion": "10" }
+    {
+      "Platform": "windows",
+      "MinimumVersion": "10"
+    }
   ]
 }
