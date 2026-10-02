@@ -12,3 +12,8 @@ Thumbs.db
 # Editor
 .vscode/
 *.swp
+
+# Build packages: shipped through the Ulanzi marketplace, not the repo
+*.zip
+*.ulanziPlugin
+marketplace-submission/images/cover_1x1.png
